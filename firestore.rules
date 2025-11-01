@@ -1,0 +1,40 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // NOTE: For production you should use Firebase Authentication
+    // and map roles from a trusted source. This example denies all
+    // writes by unauthenticated users and allows authenticated reads
+    // for demo purposes only. Tighten as needed.
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    // Example minimal rules (conservative):
+    match /issues/{id} {
+      allow read: if isSignedIn();
+      allow write: if isSignedIn(); // TODO: replace with role-based checks
+    }
+
+    match /stations/{id} {
+      allow read: if isSignedIn();
+      allow write: if isSignedIn(); // TODO: replace with role-based checks
+    }
+
+    match /issueTypes/{id} {
+      allow read: if isSignedIn();
+      allow write: if isSignedIn(); // TODO: replace with role-based checks
+    }
+
+    match /users/{id} {
+      allow read: if isSignedIn();
+      allow write: if false; // managed by admins only via backend or secured rules
+    }
+
+    match /settings/{id} {
+      allow read: if isSignedIn();
+      allow write: if isSignedIn(); // TODO: lock to admins
+    }
+  }
+}

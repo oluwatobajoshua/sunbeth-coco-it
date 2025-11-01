@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>COCO Station Issue Tracker</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="container">
+            <div class="header-content">
+                <div class="logo">
+                    <i class="fas fa-gas-pump"></i>
+                    <span>COCO Issue Tracker</span>
+                    <span style="font-size: 0.8rem; opacity: 0.8; margin-left: 8px;">by Sunbeth Energies</span>
+                </div>
+                <div class="user-menu">
+                    <div class="user-avatar" id="userAvatar">
+                        <i class="fas fa-user"></i>
+                    </div>
+                    <span class="user-name" id="userName">Loading...</span>
+                    <button class="logout-btn" id="logoutBtn">
+                        <i class="fas fa-sign-out-alt"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <main class="main-container">
+        <div class="container">
+            <!-- Welcome Section -->
+            <section class="welcome-section">
+                <h1 class="welcome-title">COCO Station Issue Tracker</h1>
+                <p class="welcome-subtitle">Streamlined issue reporting and tracking for Sunbeth Energies COCO fuel stations</p>
+            </section>
+
+            <!-- Issue Form -->
+            <section class="form-section">
+                <div class="form-card">
+                    <div class="form-header">
+                        <h2><i class="fas fa-exclamation-triangle"></i> New Issue Report</h2>
+                        <div class="progress-indicator">
+                            <div class="step active" data-step="1">1</div>
+                            <div class="step" data-step="2">2</div>
+                            <div class="step" data-step="3">3</div>
+                        </div>
+                    </div>
+
+                    <form id="issueForm" class="issue-form">
+                        <!-- Step 1: Basic Info -->
+                        <div class="form-step active" data-step="1">
+                            <div class="form-group">
+                                <label for="stationSelect">
+                                    <i class="fas fa-map-marker-alt"></i>
+                                    Station Location
+                                </label>
+                                <select id="stationSelect" required>
+                                    <option value="">Select your station...</option>
+                                    <option value="coco-lagos-1">COCO Lagos Central</option>
+                                    <option value="coco-abuja-1">COCO Abuja Main</option>
+                                    <option value="coco-port-1">COCO Port Harcourt</option>
+                                    <option value="coco-kano-1">COCO Kano Junction</option>
+                                    <option value="coco-ibadan-1">COCO Ibadan Express</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="issueType">
+                                    <i class="fas fa-tags"></i>
+                                    Issue Type
+                                </label>
+                                <div class="issue-type-grid">
+                                    <label class="issue-type-card">
+                                        <input type="radio" name="issueType" value="electrical" required>
+                                        <div class="card-content">
+                                            <i class="fas fa-bolt"></i>
+                                            <span>Electrical</span>
+                                        </div>
+                                    </label>
+                                    <label class="issue-type-card">
+                                        <input type="radio" name="issueType" value="mechanical" required>
+                                        <div class="card-content">
+                                            <i class="fas fa-cog"></i>
+                                            <span>Mechanical</span>
+                                        </div>
+                                    </label>
+                                    <label class="issue-type-card">
+                                        <input type="radio" name="issueType" value="safety" required>
+                                        <div class="card-content">
+                                            <i class="fas fa-shield-alt"></i>
+                                            <span>Safety</span>
+                                        </div>
+                                    </label>
+                                    <label class="issue-type-card">
+                                        <input type="radio" name="issueType" value="equipment" required>
+                                        <div class="card-content">
+                                            <i class="fas fa-wrench"></i>
+                                            <span>Equipment</span>
+                                        </div>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Step 2: Description -->
+                        <div class="form-step" data-step="2">
+                            <div class="form-group">
+                                <label for="issueDescription">
+                                    <i class="fas fa-comment-alt"></i>
+                                    Describe the Issue
+                                </label>
+                                <textarea 
+                                    id="issueDescription" 
+                                    rows="5" 
+                                    placeholder="Please provide details about the issue you're experiencing..."
+                                    required
+                                ></textarea>
+                                <div class="char-counter">
+                                    <span id="charCount">0</span>/500 characters
+                                </div>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="priorityLevel">
+                                    <i class="fas fa-flag"></i>
+                                    Priority Level
+                                </label>
+                                <div class="priority-selector">
+                                    <label class="priority-option low">
+                                        <input type="radio" name="priority" value="low" required>
+                                        <span class="priority-label">
+                                            <i class="fas fa-flag"></i>
+                                            Low Priority
+                                        </span>
+                                        <small>Can wait for regular maintenance</small>
+                                    </label>
+                                    <label class="priority-option medium">
+                                        <input type="radio" name="priority" value="medium" required>
+                                        <span class="priority-label">
+                                            <i class="fas fa-flag"></i>
+                                            Medium Priority
+                                        </span>
+                                        <small>Should be addressed within 24 hours</small>
+                                    </label>
+                                    <label class="priority-option high">
+                                        <input type="radio" name="priority" value="high" required>
+                                        <span class="priority-label">
+                                            <i class="fas fa-flag"></i>
+                                            High Priority
+                                        </span>
+                                        <small>Urgent - affects operations</small>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Step 3: Photo & Submit -->
+                        <div class="form-step" data-step="3">
+                            <div class="form-group">
+                                <label>
+                                    <i class="fas fa-camera"></i>
+                                    Add Photos (Optional)
+                                </label>
+                                <div class="photo-upload-area" id="photoUploadArea">
+                                    <div class="upload-prompt">
+                                        <i class="fas fa-cloud-upload-alt"></i>
+                                        <p>Drag photos here or click to select</p>
+                                        <small>Up to 3 photos, max 5MB each</small>
+                                    </div>
+                                    <input type="file" id="photoInput" multiple accept="image/*" hidden>
+                                </div>
+                                <div class="photo-preview" id="photoPreview"></div>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="contactMethod">
+                                    <i class="fas fa-phone"></i>
+                                    Preferred Contact Method
+                                </label>
+                                <select id="contactMethod" required>
+                                    <option value="email">Email Notifications</option>
+                                    <option value="sms">SMS Updates</option>
+                                    <option value="both">Email + SMS</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- Form Actions -->
+                        <div class="form-actions">
+                            <button type="button" class="btn btn-secondary" id="prevBtn" style="display: none;">
+                                <i class="fas fa-arrow-left"></i>
+                                Previous
+                            </button>
+                            <button type="button" class="btn btn-primary" id="nextBtn">
+                                Next
+                                <i class="fas fa-arrow-right"></i>
+                            </button>
+                            <button type="submit" class="btn btn-success" id="submitBtn" style="display: none;">
+                                <i class="fas fa-paper-plane"></i>
+                                Submit Issue
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </section>
+
+            <!-- Recent Issues -->
+            <section class="recent-issues">
+                <div class="section-header">
+                    <h3><i class="fas fa-history"></i> Recent Issues</h3>
+                    <button class="btn btn-outline btn-sm" id="viewAllBtn">View All Issues</button>
+                </div>
+                <div class="issues-list" id="recentIssues">
+                    <!-- Issues will be loaded here -->
+                </div>
+            </section>
+        </div>
+    </main>
+
+    <!-- Success Modal -->
+    <div class="modal" id="successModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <i class="fas fa-check-circle success-icon"></i>
+                <h2>Issue Submitted Successfully!</h2>
+            </div>
+            <div class="modal-body">
+                <p>Your issue has been reported and assigned ID:</p>
+                <div class="issue-id" id="generatedIssueId">#COCO-2025-001</div>
+                <p>Our engineering team has been notified and will respond within <strong>24 hours</strong>.</p>
+                <div class="next-steps">
+                    <h4>What happens next?</h4>
+                    <ol>
+                        <li>Engineering team reviews your issue</li>
+                        <li>You'll receive status updates via your preferred method</li>
+                        <li>Issue will be resolved and marked complete</li>
+                    </ol>
+                </div>
+            </div>
+            <div class="modal-actions">
+                <button class="btn btn-primary" id="closeModalBtn">Got it!</button>
+                <button class="btn btn-outline" id="submitAnotherBtn">Submit Another Issue</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Loading Spinner -->
+    <div class="loading-spinner" id="loadingSpinner">
+        <div class="spinner"></div>
+        <p>Submitting your issue...</p>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-storage-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+    <script src="https://js.live.net/v7.2/OneDrive.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
