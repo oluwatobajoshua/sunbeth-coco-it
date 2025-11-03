@@ -62,9 +62,9 @@ jspm_packages/
 .nuxt
 dist
 
-# Gatsby files
+# Gatsby files (we are not using Gatsby; do NOT ignore CRA public/)
 .cache/
-public
+# public/  <-- removed to allow CRA builds on CI (Vercel) to find public/index.html
 
 # Storybook build outputs
 .out
