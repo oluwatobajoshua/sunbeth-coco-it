@@ -1,10 +1,10 @@
 import { render, screen } from '@testing-library/react';
 import App from './App';
 
-test('renders COCO Issue Tracker', () => {
+test('renders landing hero title', () => {
   render(<App />);
-  const headerElement = screen.getByText(/COCO Issue Tracker/i);
-  expect(headerElement).toBeInTheDocument();
+  const hero = screen.getByText(/Sunbeth COCO Issue Tracker/i);
+  expect(hero).toBeInTheDocument();
 });
 
 test('renders Sunbeth Energies branding', () => {
@@ -13,9 +13,10 @@ test('renders Sunbeth Energies branding', () => {
   expect(brandingElement).toBeInTheDocument();
 });
 
-test('renders issue form when authenticated', () => {
+test('renders dashboard when navigating to /dashboard', () => {
+  // Simulate navigation to /dashboard
+  window.history.pushState({}, 'Dashboard', '/dashboard');
   render(<App />);
-  // Since we have mock auth that returns a user, the form should be visible
-  const formElement = screen.getByText(/New Issue Report/i);
-  expect(formElement).toBeInTheDocument();
+  const kpi = screen.getByText(/COCO Station Dashboard/i);
+  expect(kpi).toBeInTheDocument();
 });

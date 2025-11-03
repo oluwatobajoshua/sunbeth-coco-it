@@ -79,27 +79,39 @@ export const exportToCsv = (filename, rows) => {
 };
 
 export const validateForm = (data) => {
+  // Partial-aware validation: only validate fields provided in `data`.
+  // This enables step-by-step forms to validate just the current step.
   const errors = {};
-  
-  if (!data.stationId) {
-    errors.stationId = 'Station selection is required';
+  const has = (key) => Object.prototype.hasOwnProperty.call(data ?? {}, key);
+
+  if (has('stationId')) {
+    if (!data.stationId) {
+      errors.stationId = 'Station selection is required';
+    }
   }
-  
-  if (!data.issueType) {
-    errors.issueType = 'Issue type is required';
+
+  if (has('issueType')) {
+    if (!data.issueType) {
+      errors.issueType = 'Issue type is required';
+    }
   }
-  
-  if (!data.description || data.description.trim().length < 10) {
-    errors.description = 'Description must be at least 10 characters';
+
+  if (has('description')) {
+    const desc = (data.description || '').trim();
+    if (desc.length < 10) {
+      errors.description = 'Description must be at least 10 characters';
+    }
   }
-  
-  if (!data.priority) {
-    errors.priority = 'Priority level is required';
+
+  if (has('priority')) {
+    if (!data.priority) {
+      errors.priority = 'Priority level is required';
+    }
   }
-  
+
   return {
     isValid: Object.keys(errors).length === 0,
-    errors
+    errors,
   };
 };
 

@@ -9,6 +9,7 @@ export const useIssueStats = (userEmail, stationId, sinceDays) => {
     open: 0,
     inProgress: 0,
     resolved: 0,
+    closed: 0,
     resolutionRate: 0,
     byType: {},
     byPriority: { low: 0, medium: 0, high: 0 },
@@ -42,10 +43,10 @@ export const useIssueStats = (userEmail, stationId, sinceDays) => {
           if (sinceDate) list = list.filter(it => it.createdAt >= sinceDate);
 
           const total = list.length;
-          const openStatuses = ['reported','in-progress'];
-          const open = list.filter(it => openStatuses.includes(it.status)).length;
+          const open = list.filter(it => it.status === 'reported').length;
           const inProgress = list.filter(it => it.status === 'in-progress').length;
           const resolved = list.filter(it => it.status === 'resolved').length;
+          const closed = list.filter(it => it.status === 'closed').length;
           const resolutionRate = total ? Math.round((resolved/total)*100) : 0;
 
           const types = ['electrical','mechanical','safety','equipment'];
@@ -71,7 +72,8 @@ export const useIssueStats = (userEmail, stationId, sinceDays) => {
           const b0 = new Date(now.getTime() - 2*24*3600*1000);
           const b1 = new Date(now.getTime() - 7*24*3600*1000);
           const b2 = new Date(now.getTime() - 14*24*3600*1000);
-          const openList = list.filter(it => openStatuses.includes(it.status));
+          const agingOpenStatuses = ['reported','in-progress','pending_approval'];
+          const openList = list.filter(it => agingOpenStatuses.includes(it.status));
           const agingBuckets = {
             d0_2: openList.filter(it => it.createdAt >= b0).length,
             d3_7: openList.filter(it => it.createdAt >= b1 && it.createdAt < b0).length,
@@ -90,7 +92,7 @@ export const useIssueStats = (userEmail, stationId, sinceDays) => {
 
           setStats(s => ({
             ...s,
-            total, open, inProgress, resolved, resolutionRate,
+            total, open, inProgress, resolved, closed, resolutionRate,
             byType, byPriority, trend7, agingBuckets, topStations,
             trendTotal: 0, trendOpen: 0, trendInProgress: 0, trendResolved: 0,
           }));
@@ -120,17 +122,19 @@ export const useIssueStats = (userEmail, stationId, sinceDays) => {
         };
 
         // Counts by status
-        const [totalSnap, openSnap, inProgSnap, resolvedSnap] = await Promise.all([
+        const [totalSnap, openSnap, inProgSnap, resolvedSnap, closedSnap] = await Promise.all([
           getCountFromServer(qUser()),
           getCountFromServer(qUser([where('status', '==', 'reported')])),
           getCountFromServer(qUser([where('status', '==', 'in-progress')])),
           getCountFromServer(qUser([where('status', '==', 'resolved')])),
+          getCountFromServer(qUser([where('status', '==', 'closed')])),
         ]);
 
         const total = totalSnap.data().count;
         const open = openSnap.data().count;
         const inProgress = inProgSnap.data().count;
-        const resolved = resolvedSnap.data().count;
+  const resolved = resolvedSnap.data().count;
+  const closed = closedSnap.data().count;
 
         const resolutionRate = total ? Math.round((resolved / total) * 100) : 0;
 
@@ -172,7 +176,7 @@ export const useIssueStats = (userEmail, stationId, sinceDays) => {
         }
 
         // Aging buckets (open issues only)
-        const openStatuses = ['reported','in-progress'];
+  const openStatuses = ['reported','in-progress','pending_approval'];
         const b0 = new Date(now); b0.setDate(now.getDate() - 2);
         const b1 = new Date(now); b1.setDate(now.getDate() - 7);
         const b2 = new Date(now); b2.setDate(now.getDate() - 14);
@@ -210,6 +214,7 @@ export const useIssueStats = (userEmail, stationId, sinceDays) => {
           open,
           inProgress,
           resolved,
+          closed,
           resolutionRate,
           byType,
           byPriority,

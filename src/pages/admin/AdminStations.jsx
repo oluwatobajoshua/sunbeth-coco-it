@@ -58,31 +58,43 @@ const AdminStations = () => {
       {loading ? (
         <div className="small">Loading...</div>
       ) : (
-        <div className="table" role="table" aria-label="Stations">
-          <div className="table-row header" role="row">
-            <div className="cell" role="columnheader">Code</div>
-            <div className="cell" role="columnheader">Name</div>
-            <div className="cell" role="columnheader">City</div>
-            <div className="cell" role="columnheader">Region</div>
-            <div className="cell" role="columnheader">Active</div>
-            <div className="cell" role="columnheader">Actions</div>
-          </div>
-          {list.map(item => (
-            <div key={item.id} className="table-row" role="row">
-              <div className="cell" role="cell">{item.code}</div>
-              <div className="cell" role="cell">{item.name}</div>
-              <div className="cell" role="cell">{item.city || '—'}</div>
-              <div className="cell" role="cell">{item.region || '—'}</div>
-              <div className="cell" role="cell">{item.active ? 'Yes' : 'No'}</div>
-              <div className="cell" role="cell">
-                <div className="d-flex" style={{ gap: 6 }}>
-                  <button className="btn btn-outline" onClick={()=>setEditing(item)} disabled={!canManage}><i className="fas fa-edit"></i></button>
-                  <button className="btn btn-outline" onClick={()=>onDelete(item.id)} disabled={!canManage}><i className="fas fa-trash"></i></button>
+        <>
+          <div className="table" role="table" aria-label="Stations" style={{ '--cols': '0.8fr 1.4fr 1.2fr 1.2fr 0.6fr 0.8fr' }}>
+            <div className="table-row header" role="row">
+              <div className="cell" role="columnheader">Code</div>
+              <div className="cell" role="columnheader">Name</div>
+              <div className="cell" role="columnheader">City</div>
+              <div className="cell" role="columnheader">Region</div>
+              <div className="cell" role="columnheader">Active</div>
+              <div className="cell" role="columnheader">Actions</div>
+            </div>
+            {list.map(item => (
+              <div key={item.id} className="table-row" role="row">
+                <div className="cell" role="cell">{item.code}</div>
+                <div className="cell" role="cell">{item.name}</div>
+                <div className="cell" role="cell">{item.city || '—'}</div>
+                <div className="cell" role="cell">{item.region || '—'}</div>
+                <div className="cell" role="cell">{item.active ? 'Yes' : 'No'}</div>
+                <div className="cell" role="cell">
+                  <div className="d-flex" style={{ gap: 6 }}>
+                    <button className="btn btn-outline" onClick={()=>setEditing(item)} disabled={!canManage}><i className="fas fa-edit"></i></button>
+                    <button className="btn btn-outline" onClick={()=>onDelete(item.id)} disabled={!canManage}><i className="fas fa-trash"></i></button>
+                  </div>
                 </div>
               </div>
+            ))}
+          </div>
+          {!list.length && (
+            <div className="card" style={{ padding: 16, marginTop: 12 }}>
+              <div className="small">No stations yet.</div>
+              {canManage && (
+                <div style={{ marginTop: 8 }}>
+                  <button className="btn btn-accent" onClick={()=>setCreating(true)}><i className="fas fa-plus"></i> Create your first station</button>
+                </div>
+              )}
             </div>
-          ))}
-        </div>
+          )}
+        </>
       )}
       {editing && canManage && <StationForm initial={editing} onSave={(data)=>onUpdate(editing.id, data)} onCancel={()=>setEditing(null)} />}
     </section>

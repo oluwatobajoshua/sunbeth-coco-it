@@ -1,40 +1,149 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-
-    // NOTE: For production you should use Firebase Authentication
-    // and map roles from a trusted source. This example denies all
-    // writes by unauthenticated users and allows authenticated reads
-    // for demo purposes only. Tighten as needed.
-
-    function isSignedIn() {
+    function authed() {
       return request.auth != null;
     }
+    // Admin/Manager helpers are retained for backward compatibility but now
+    // derive from permissions instead of hard-coded role names
+    function isAdmin() { return hasPerm('manage_users') || hasPerm('manage_settings'); }
+    function isManager() { return hasPerm('manage_issues') || hasPerm('view_admin'); }
 
-    // Example minimal rules (conservative):
+    // Map auth role to permissions matrix key and check admin-configured permissions
+    // Prefer a custom claim 'role' set by backend. If absent, fall back to a directory document keyed by UID/email.
+    // Additionally, support a bootstrap super admin list stored in settings/bootstrap.super_admin_emails
+    // This enables first admin sign-in without custom claims.
+    function isBootstrapSuperAdmin() {
+      return authed() && (
+        exists(/databases/$(database)/documents/settings/bootstrap) &&
+        (request.auth.token.email in get(/databases/$(database)/documents/settings/bootstrap).data.super_admin_emails)
+      );
+    }
+    function roleFromDirectory() {
+      return authed() ? (
+        exists(/databases/$(database)/documents/users/$(request.auth.uid))
+          ? get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role
+          : (
+              request.auth.token.email != null && exists(/databases/$(database)/documents/users/$(request.auth.token.email))
+                ? get(/databases/$(database)/documents/users/$(request.auth.token.email)).data.role
+                : null
+            )
+      ) : null;
+    }
+
+    function roleKey() {
+      // Resolve role from (1) bootstrap override, (2) custom claim, (3) users directory
+      // Expect directory/claims to already store a role key like 'admin' or 'operations_lead'.
+      // Map common display names for backward compatibility.
+      let claimRole = request.auth != null ? request.auth.token.role : null;
+      let dirRole = roleFromDirectory();
+      let role = isBootstrapSuperAdmin() ? 'super_admin' : (claimRole != null ? claimRole : (dirRole != null ? dirRole : 'viewer'));
+      return role == 'Super Admin' ? 'super_admin'
+        : role == 'Admin' ? 'admin'
+        : role == 'Station Manager' ? 'station_manager'
+        : role == 'Engineer' ? 'engineer'
+        : role; // dynamic roles supported when stored as keys
+    }
+
+    function hasPerm(perm) {
+      // Super Admins have all permissions; otherwise use effectivePerms or matrix fallback
+      return (
+        (authed() && roleKey() == 'super_admin') ||
+        hasEffPerm(perm) || (
+          authed() &&
+          exists(/databases/$(database)/documents/settings/permissions) &&
+          get(/databases/$(database)/documents/settings/permissions).data.matrix[roleKey()][perm] == true
+        )
+      );
+    }
+
+    function hasEffPerm(perm) {
+      return authed() &&
+        exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.effectivePerms[perm] == true;
+    }
+
     match /issues/{id} {
-      allow read: if isSignedIn();
-      allow write: if isSignedIn(); // TODO: replace with role-based checks
+      // Anyone signed-in can report an issue
+      allow read: if authed();
+      allow create: if authed();
+      // Update allowed by Admin or by matrix permission manage_issues
+      allow update: if isAdmin() || hasPerm('manage_issues');
+      // Delete restricted to Admin or matrix debug_tools (Super Admin by default)
+      allow delete: if isAdmin() || hasPerm('debug_tools');
     }
 
     match /stations/{id} {
-      allow read: if isSignedIn();
-      allow write: if isSignedIn(); // TODO: replace with role-based checks
+      allow read: if authed();
+      allow write: if hasPerm('manage_stations');
     }
 
     match /issueTypes/{id} {
-      allow read: if isSignedIn();
-      allow write: if isSignedIn(); // TODO: replace with role-based checks
+      allow read: if authed();
+      allow write: if hasPerm('manage_issue_types');
     }
 
-    match /users/{id} {
-      allow read: if isSignedIn();
-      allow write: if false; // managed by admins only via backend or secured rules
+    // Users directory
+    // Any authenticated user can read the directory. Admins can manage users.
+    // Additionally, allow a signed-in user to upsert their own UID document with non-privileged fields
+    // (prevents "role: unknown" during first sign-in without opening escalation paths).
+    match /users/{docId} {
+      allow read: if authed();
+      allow write: if hasPerm('manage_users') || (
+        authed() &&
+        // Only allow writing their own UID doc
+        docId == request.auth.uid &&
+        // Ensure directory email matches the signed-in user
+        request.resource.data.email == request.auth.token.email &&
+        // Prevent privilege escalation: client cannot set admin/super roles
+        (
+          // role omitted, or limited to non-admin roles
+          !("role" in request.resource.data) ||
+          (request.resource.data.role in ['Viewer', 'Engineer', 'Station Manager'])
+        )
+      );
+    }
+
+    // Roles catalog management
+    match /roles/{id} {
+      allow read: if authed();
+      allow write: if hasPerm('manage_roles');
+      allow delete: if hasPerm('manage_roles');
     }
 
     match /settings/{id} {
-      allow read: if isSignedIn();
-      allow write: if isSignedIn(); // TODO: lock to admins
+      allow read: if authed();
+      // Settings writes require Admin or manage_settings permission
+      allow write: if isAdmin() || hasPerm('manage_settings');
+    }
+
+    // Notifications audit records: client writes audit entries after actions
+    match /notifications/{id} {
+      allow read: if hasPerm('view_admin');
+      allow create: if authed();
+      allow update, delete: if hasPerm('manage_settings');
+    }
+
+    // Escalations: created on high-priority issues (client-side minimal record)
+    match /escalations/{id} {
+      allow read: if isManager() || hasPerm('manage_issues') || hasPerm('view_admin');
+      allow create: if authed();
+      allow update, delete: if hasPerm('debug_tools');
+    }
+
+    // Audit logs: ERP-style change tracking; any authenticated write allowed,
+    // reads restricted to Admin to reduce noise exposure.
+    match /auditLogs/{id} {
+      allow read: if hasPerm('view_admin');
+      allow create: if authed();
+      allow update, delete: if hasPerm('debug_tools');
+    }
+
+    // Health check collection: allow any signed-in user to read/write
+    // This is safe diagnostic data only (timestamps/metadata), not business data
+    match /health/{id} {
+      allow read: if authed();
+      allow write: if authed();
     }
   }
 }

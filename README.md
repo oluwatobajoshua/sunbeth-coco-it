@@ -219,7 +219,7 @@ This project now includes a full React implementation with an ERP-style Admin Co
 - Stations: Full CRUD
 - Issue Types: Full CRUD
 - Users: Full CRUD with roles and optional station assignment
-- Permissions: Role → permission matrix persisted at Firestore doc `settings/permissions`
+- Permissions: Role → permission matrix persisted at Firestore doc `settings/permissions` (dynamic roles supported; add/remove roles in Admin → Permissions)
 - Settings: App limits, CSV enable, Demo Mode toggle, environment summary
 - Debug (Super Admin): Seed first 30 demo issues into Firestore, clear all issues (destructive), toggle Demo Mode, clear local/session storage
 
@@ -249,3 +249,100 @@ Tip: During development, `src/hooks/useAuth.js` uses a mock user. Change `role` 
 4. `npm run build` for production
 
 For a deeper React-specific guide (structure, scripts, deployment), see `README-REACT.md`.
+
+## Live Data Seeding (Firestore)
+
+To bootstrap Stations, Issue Types, App Settings, and Escalation Settings in your Firestore project:
+
+- Ensure you have a Firebase service account. On Windows PowerShell you can set it via an environment variable or point to a file.
+- Then run the seeder:
+
+PowerShell examples:
+
+1) Using GOOGLE_APPLICATION_CREDENTIALS
+
+```
+$env:GOOGLE_APPLICATION_CREDENTIALS = "C:\path\to\service-account.json"; npm run seed:live -- --project your-firebase-project-id
+```
+
+2) Passing a creds file explicitly
+
+```
+npm run seed:live -- --project your-firebase-project-id --creds C:\path\to\service-account.json
+```
+
+3) Also create/merge an Admin user document (for Admin Console)
+
+```
+$env:GOOGLE_APPLICATION_CREDENTIALS = "C:\path\to\service-account.json"; npm run seed:live -- --project your-firebase-project-id --admin-email you@org.com --admin-role "Super Admin"
+```
+
+What it seeds:
+- stations: 5 sample COCO stations
+- issueTypes: Electrical, Mechanical, Safety, Equipment (active)
+- settings/app: notification toggles, recipient emails, SLA-by-priority
+- settings/escalation: default policy (disabled by default)
+- users/{email}: optional admin user doc when --admin-email is provided
+
+You can edit `scripts/seed-live.js` to customize values for your environment.
+
+## 🔐 RBAC and Firestore Rules (Production)
+
+This project enforces permissions directly in Firestore Rules and mirrors them in the UI. Key points:
+
+- Role resolution order used by rules:
+   1) Bootstrap list: `settings/bootstrap.super_admin_emails` → users in this list are treated as Super Admin
+   2) Firebase Auth custom claims: `request.auth.token.role`
+   3) Users directory: `users/{uid}` then fallback `users/{email}` → `role` field
+
+- Permission matrix document: `settings/permissions.matrix`
+   - Keys: `viewer`, `engineer`, `station_manager`, `admin`, `super_admin`
+   - Flags: `view_admin`, `manage_stations`, `manage_issue_types`, `manage_users`, `manage_issues`, `manage_settings`, `debug_tools`, etc.
+
+- Users directory
+   - Admins can manage users.
+   - A signed-in user may upsert their own `users/{uid}` with non-privileged fields (email must match; cannot set Admin/Super Admin). This prevents first-login deadlocks where the directory doc is missing.
+
+- Deploying rules
+   - After changes to `firestore.rules`, deploy:
+      - `npx firebase-tools deploy --only firestore:rules --project <projectId>`
+
+## ⚙️ Dev helpers (PowerShell)
+
+Use `scripts/dev-up.ps1` to standardize local ops on Windows. It also sets persistent environment variables.
+
+- Set env for current session and persist at user-level:
+   - `Set-FirebaseEnv -Path "C:\Users\OluwatobaOgunsakin\secrets\firebase\sunbeth-...ed.json" -Project sunbeth-energies-coco-it-891d2`
+
+- Seed live data (including bootstrap list):
+   - `Seed-Live -Bootstrap "oluwatoba.ogunsakin@sunbeth.net,ogunsakinoluwatoba@gmail.com"`
+
+- Promote a user with server-side custom claims and users directory upsert:
+   - `Promote-User -Email "ogunsakinoluwatoba@gmail.com" -Role "Super Admin"`
+
+- Deploy Firestore rules:
+   - `Deploy-Rules`
+
+You can also call the underlying Node scripts directly if you prefer (`scripts/seed-live.js`, `scripts/promote-user.js`).
+
+## 🧰 Troubleshooting permissions
+
+If you see “Missing or insufficient permissions” or the UI shows role: unknown:
+
+1) Turn on the auth debug chip
+    - In `.env`, set `REACT_APP_DEBUG_AUTH=true` and restart. The Admin header will show your email, provider, resolved role, and whether key permissions (like `manage_stations`) are granted.
+
+2) Ensure your user is recognized by rules
+    - Seed bootstrap list to `settings/bootstrap.super_admin_emails` OR
+    - Run `scripts/promote-user.js` to set custom claims AND upsert `users/{uid}` + `users/{email}` docs.
+
+3) Sign out and sign back in
+    - This refreshes Firebase ID token so new claims/roles are applied client-side.
+
+4) Verify the permissions matrix
+    - Check `settings/permissions` to ensure your role maps to the required flags.
+
+5) Re-deploy rules if they changed
+    - `npx firebase-tools deploy --only firestore:rules --project <projectId>`
+
+Note: Anonymous sign-in is disabled by default to avoid confusing role resolution. You can enable it for dev by setting `REACT_APP_ALLOW_ANON=true`.

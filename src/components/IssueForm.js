@@ -1,54 +1,80 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { toast } from 'react-hot-toast';
 import PhotoUpload from './PhotoUpload';
 import SuccessModal from './SuccessModal';
 import { createIssue, sendNotifications } from '../services/issueService';
-import { validateForm } from '../utils/helpers';
+import { createInitialEscalation } from '../services/escalationService';
+// import { validateForm } from '../utils/helpers';
 import { useAuth } from '../hooks/useAuth';
+import { getStations } from '../services/stationService';
+import { getIssueTypes } from '../services/issueTypeService';
+import { useFormDraft } from '../utils/useFormDraft';
+import { getOptions, ensureSeededAll } from '../services/optionsService';
 
 const IssueForm = ({ onIssueCreated }) => {
   const { user } = useAuth();
-  const { register, handleSubmit, watch, reset, formState: { errors } } = useForm();
-  const [currentStep, setCurrentStep] = useState(1);
+  const { register, handleSubmit, watch, reset, setValue, formState: { errors } } = useForm();
   const [photos, setPhotos] = useState([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [successModal, setSuccessModal] = useState({ show: false, issueId: null });
+  const [successModal, setSuccessModal] = useState({ show: false, issueId: null, teamLabel: null });
+  const [stations, setStations] = useState([]);
+  const [types, setTypes] = useState([]);
+  const [priorities, setPriorities] = useState([
+    { value: 'low', label: 'Low Priority', desc: 'Can wait for regular maintenance' },
+    { value: 'medium', label: 'Medium Priority', desc: 'Should be addressed within 24 hours' },
+    { value: 'high', label: 'High Priority', desc: 'Urgent - affects operations' }
+  ]);
 
-  const totalSteps = 3;
   const watchedFields = watch();
 
-  const nextStep = () => {
-    const validation = validateCurrentStep();
-    if (validation.isValid) {
-      setCurrentStep(prev => Math.min(prev + 1, totalSteps));
-    } else {
-      Object.values(validation.errors).forEach(error => {
-        toast.error(error);
-      });
-    }
-  };
+  // Draft persistence (exclude photos)
+  const { clearDraft } = useFormDraft('issueFormDraft', watch, reset, { exclude: ['photos'] });
 
-  const prevStep = () => {
-    setCurrentStep(prev => Math.max(prev - 1, 1));
-  };
-
-  const validateCurrentStep = () => {
-    switch (currentStep) {
-      case 1:
-        return validateForm({
-          stationId: watchedFields.stationSelect,
-          issueType: watchedFields.issueType
-        });
-      case 2:
-        return validateForm({
-          description: watchedFields.issueDescription,
-          priority: watchedFields.priority
-        });
-      default:
-        return { isValid: true, errors: {} };
-    }
-  };
+  // Load stations and issue-related options; prefill user's station
+  useEffect(() => {
+    (async () => {
+      const list = await getStations();
+      setStations(list);
+      if (!watchedFields.stationSelect && user?.stationId) {
+        setValue('stationSelect', user.stationId);
+      }
+      let t = [];
+      try { t = await getIssueTypes(); } catch(_) { t = []; }
+      if (!Array.isArray(t) || t.length === 0) {
+        try { await ensureSeededAll(); } catch(_) {}
+        try {
+          const t2 = await getIssueTypes();
+          if (Array.isArray(t2) && t2.length) {
+            t = t2;
+          } else {
+            t = [
+              { id: 'electrical', key: 'electrical', label: 'Electrical', icon: 'bolt', active: true },
+              { id: 'mechanical', key: 'mechanical', label: 'Mechanical', icon: 'cog', active: true },
+              { id: 'safety', key: 'safety', label: 'Safety', icon: 'shield-alt', active: true },
+              { id: 'equipment', key: 'equipment', label: 'Equipment', icon: 'wrench', active: true },
+            ];
+          }
+        } catch(_) {
+          t = [
+            { id: 'electrical', key: 'electrical', label: 'Electrical', icon: 'bolt', active: true },
+            { id: 'mechanical', key: 'mechanical', label: 'Mechanical', icon: 'cog', active: true },
+            { id: 'safety', key: 'safety', label: 'Safety', icon: 'shield-alt', active: true },
+            { id: 'equipment', key: 'equipment', label: 'Equipment', icon: 'wrench', active: true },
+          ];
+        }
+      }
+      setTypes(t);
+      try {
+        const opts = await getOptions();
+        if (Array.isArray(opts?.priorities) && opts.priorities.length) {
+          const pr = opts.priorities.map(p => typeof p === 'string' ? { value: p, label: p, desc: '' } : p);
+          setPriorities(pr);
+        }
+      } catch (_) { /* ignore */ }
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.stationId]);
 
   const onSubmit = async (data) => {
     setIsSubmitting(true);
@@ -59,18 +85,28 @@ const IssueForm = ({ onIssueCreated }) => {
         issueType: data.issueType,
         description: data.issueDescription,
         priority: data.priority,
-        contactMethod: data.contactMethod || 'email',
+        // contactMethod removed from form; notification channels are admin-managed
         reporterId: user.email,
         reporterName: user.name
       };
 
-      const issueId = await createIssue(issueData, photos);
-      await sendNotifications({ ...issueData, id: issueId });
+  const issueId = await createIssue(issueData, photos);
+  const fullIssue = { ...issueData, id: issueId };
+      await sendNotifications(fullIssue);
+      if (issueData.priority === 'high') {
+        // Fire-and-forget; robust processing can be handled server-side later
+        createInitialEscalation(fullIssue);
+      }
       
-      setSuccessModal({ show: true, issueId });
+      // Determine team label from selected issue type for SuccessModal copy
+      const selected = (types || []).find(t => (t.key || t.id) === issueData.issueType);
+      const inferredLabel = selected?.label || String(issueData.issueType || 'Relevant')
+        .replace(/[-_]+/g, ' ')
+        .replace(/\b\w/g, c => c.toUpperCase());
+      setSuccessModal({ show: true, issueId, teamLabel: inferredLabel });
       reset();
-      setPhotos([]);
-      setCurrentStep(1);
+    setPhotos([]);
+  clearDraft();
       
       if (onIssueCreated) {
         onIssueCreated();
@@ -101,22 +137,11 @@ const IssueForm = ({ onIssueCreated }) => {
             <h2>
               <i className="fas fa-exclamation-triangle"></i> New Issue Report
             </h2>
-            <div className="progress-indicator">
-              {[1, 2, 3].map(step => (
-                <div
-                  key={step}
-                  className={`step ${step <= currentStep ? 'active' : ''}`}
-                >
-                  {step}
-                </div>
-              ))}
-            </div>
           </div>
 
-          <form onSubmit={handleSubmit(onSubmit)} className="issue-form">
-            {/* Step 1: Basic Info */}
-            {currentStep === 1 && (
-              <div className="form-step active">
+          <form onSubmit={handleSubmit(onSubmit)} className="issue-form" data-testid="issue-form">
+            {/* Single step: All fields */}
+            <div className="form-step active" data-testid="form-single">
                 <div className="form-group">
                   <label htmlFor="stationSelect">
                     <i className="fas fa-map-marker-alt"></i>
@@ -126,13 +151,12 @@ const IssueForm = ({ onIssueCreated }) => {
                     {...register('stationSelect', { required: 'Station selection is required' })}
                     id="stationSelect"
                     className={errors.stationSelect ? 'error-field' : ''}
+                    data-testid="station-select"
                   >
                     <option value="">Select your station...</option>
-                    <option value="coco-lagos-1">COCO Lagos Central</option>
-                    <option value="coco-abuja-1">COCO Abuja Main</option>
-                    <option value="coco-port-1">COCO Port Harcourt</option>
-                    <option value="coco-kano-1">COCO Kano Junction</option>
-                    <option value="coco-ibadan-1">COCO Ibadan Express</option>
+                    {stations.map(s => (
+                      <option key={s.id} value={s.id} data-testid={`station-option-${s.id}`}>{s.name || s.id}</option>
+                    ))}
                   </select>
                   {errors.stationSelect && (
                     <span className="error">{errors.stationSelect.message}</span>
@@ -140,40 +164,27 @@ const IssueForm = ({ onIssueCreated }) => {
                 </div>
 
                 <div className="form-group">
-                  <label>
+                  <label htmlFor="issueType">
                     <i className="fas fa-tags"></i>
                     Issue Type
                   </label>
-                  <div className="issue-type-grid">
-                    {[
-                      { value: 'electrical', icon: 'bolt', label: 'Electrical' },
-                      { value: 'mechanical', icon: 'cog', label: 'Mechanical' },
-                      { value: 'safety', icon: 'shield-alt', label: 'Safety' },
-                      { value: 'equipment', icon: 'wrench', label: 'Equipment' }
-                    ].map(type => (
-                      <label key={type.value} className="issue-type-card">
-                        <input
-                          type="radio"
-                          {...register('issueType', { required: 'Issue type is required' })}
-                          value={type.value}
-                        />
-                        <div className="card-content">
-                          <i className={`fas fa-${type.icon}`}></i>
-                          <span>{type.label}</span>
-                        </div>
-                      </label>
+                  <select
+                    {...register('issueType', { required: 'Issue type is required' })}
+                    id="issueType"
+                    className={errors.issueType ? 'error-field' : ''}
+                    data-testid="issue-type-select"
+                  >
+                    <option value="">Select issue type...</option>
+                    {types.map(type => (
+                      <option key={type.key || type.id} value={type.key || type.id} data-testid={`issue-type-option-${type.key || type.id}`}>
+                        {type.label || type.key}
+                      </option>
                     ))}
-                  </div>
+                  </select>
                   {errors.issueType && (
                     <span className="error">{errors.issueType.message}</span>
                   )}
                 </div>
-              </div>
-            )}
-
-            {/* Step 2: Description */}
-            {currentStep === 2 && (
-              <div className="form-step active">
                 <div className="form-group">
                   <label htmlFor="issueDescription">
                     <i className="fas fa-comment-alt"></i>
@@ -189,6 +200,7 @@ const IssueForm = ({ onIssueCreated }) => {
                     placeholder="Please provide details about the issue you're experiencing..."
                     maxLength="500"
                     className={errors.issueDescription ? 'error-field' : ''}
+                    data-testid="issue-description"
                   />
                   <div className="char-counter">
                     <span style={{ color: watchedFields.issueDescription?.length > 450 ? 'var(--danger-color)' : 'var(--muted)' }}>
@@ -201,89 +213,52 @@ const IssueForm = ({ onIssueCreated }) => {
                 </div>
 
                 <div className="form-group">
-                  <label>
+                  <label htmlFor="priority">
                     <i className="fas fa-flag"></i>
                     Priority Level
                   </label>
-                  <div className="priority-selector">
-                    {[
-                      { value: 'low', label: 'Low Priority', desc: 'Can wait for regular maintenance' },
-                      { value: 'medium', label: 'Medium Priority', desc: 'Should be addressed within 24 hours' },
-                      { value: 'high', label: 'High Priority', desc: 'Urgent - affects operations' }
-                    ].map(priority => (
-                      <label key={priority.value} className={`priority-option ${priority.value}`}>
-                        <input
-                          type="radio"
-                          {...register('priority', { required: 'Priority is required' })}
-                          value={priority.value}
-                        />
-                        <span className="priority-label">
-                          <i className="fas fa-flag"></i>
-                          {priority.label}
-                        </span>
-                        <small>{priority.desc}</small>
-                      </label>
+                  <select
+                    {...register('priority', { required: 'Priority is required' })}
+                    id="priority"
+                    className={errors.priority ? 'error-field' : ''}
+                    data-testid="priority-select"
+                  >
+                    <option value="">Select priority...</option>
+                    {priorities.map(priority => (
+                      <option key={priority.value} value={priority.value} data-testid={`priority-option-${priority.value}`}>
+                        {priority.label}
+                      </option>
                     ))}
-                  </div>
+                  </select>
                   {errors.priority && (
                     <span className="error">{errors.priority.message}</span>
                   )}
                 </div>
-              </div>
-            )}
-
-            {/* Step 3: Photos & Submit */}
-            {currentStep === 3 && (
-              <div className="form-step active">
-                <PhotoUpload photos={photos} onChange={handlePhotoChange} />
-
                 <div className="form-group">
-                  <label htmlFor="contactMethod">
-                    <i className="fas fa-phone"></i>
-                    Preferred Contact Method
-                  </label>
-                  <select {...register('contactMethod')} id="contactMethod">
-                    <option value="email">Email Notifications</option>
-                    <option value="sms">SMS Updates</option>
-                    <option value="both">Email + SMS</option>
-                  </select>
+                  <PhotoUpload photos={photos} onChange={handlePhotoChange} />
                 </div>
-              </div>
-            )}
+            </div>
 
             {/* Form Actions */}
             <div className="form-actions">
-              {currentStep > 1 && (
-                <button type="button" className="btn btn-secondary" onClick={prevStep}>
-                  <i className="fas fa-arrow-left"></i>
-                  Previous
-                </button>
-              )}
-              
-              {currentStep < totalSteps ? (
-                <button type="button" className="btn btn-primary" onClick={nextStep}>
-                  Next
-                  <i className="fas fa-arrow-right"></i>
-                </button>
-              ) : (
-                <button 
-                  type="submit" 
-                  className="btn btn-success"
-                  disabled={isSubmitting}
-                >
-                  {isSubmitting ? (
-                    <>
-                      <i className="fas fa-spinner fa-spin"></i>
-                      Submitting...
-                    </>
-                  ) : (
-                    <>
-                      <i className="fas fa-paper-plane"></i>
-                      Submit Issue
-                    </>
-                  )}
-                </button>
-              )}
+              <button 
+                type="submit" 
+                className="btn btn-success"
+                disabled={isSubmitting}
+                data-testid="submit-button"
+              >
+                {isSubmitting ? (
+                  <>
+                    <i className="fas fa-spinner fa-spin"></i>
+                    Submitting...
+                  </>
+                ) : (
+                  <>
+                    <i className="fas fa-paper-plane"></i>
+                    Submit Issue
+                  </>
+                )}
+              </button>
             </div>
           </form>
         </div>
@@ -292,6 +267,7 @@ const IssueForm = ({ onIssueCreated }) => {
       <SuccessModal
         show={successModal.show}
         issueId={successModal.issueId}
+        teamLabel={successModal.teamLabel}
         onClose={closeSuccessModal}
       />
     </>

@@ -1,6 +1,7 @@
 import React from 'react';
 import IssueForm from '../components/IssueForm';
 import { Link } from 'react-router-dom';
+import PageHeader from '../components/PageHeader';
 
 const ReportIssue = () => {
   const handleIssueCreated = () => {
@@ -10,16 +11,19 @@ const ReportIssue = () => {
 
   return (
     <div className="container">
-      <section className="welcome-section">
-        <h1 className="welcome-title">New Issue Report</h1>
-        <p className="welcome-subtitle">Provide details and attach any relevant photos</p>
-        <div className="dashboard-actions" style={{justifyContent:'flex-start'}}>
-          <Link to="/" className="btn btn-outline">
-            <i className="fas fa-arrow-left"></i>
-            Back to Dashboard
-          </Link>
-        </div>
-      </section>
+      <PageHeader
+        title="New Issue Report"
+        subtitle="Provide details and attach any relevant photos"
+        breadcrumbs={[{ label: 'Home', icon: <i className="fas fa-home" aria-hidden></i> }, { label: 'Report Issue', active: true }]}
+        actions={(
+          <div className="dashboard-actions" style={{justifyContent:'flex-end'}}>
+            <Link to="/dashboard" className="btn btn-outline">
+              <i className="fas fa-arrow-left"></i>
+              Back to Dashboard
+            </Link>
+          </div>
+        )}
+      />
       <IssueForm onIssueCreated={handleIssueCreated} />
     </div>
   );

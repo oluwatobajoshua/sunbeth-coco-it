@@ -1,8 +1,10 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
+import PageHeader from '../components/PageHeader';
 import { useIssueStats } from '../hooks/useIssueStats';
 import { useAuth } from '../hooks/useAuth';
-import { STATIONS, getStationName } from '../utils/helpers';
+import { getStations } from '../services/stationService';
+import { normalizeRole } from '../utils/permissions';
 import StatusDonut from '../components/charts/StatusDonut';
 import TypeBar from '../components/charts/TypeBar';
 // import TrendLine from '../components/charts/TrendLine';
@@ -51,6 +53,24 @@ const Dashboard = () => {
   const reporter = scope === 'org' ? null : user?.email;
   const { stats, loading } = useIssueStats(reporter, station || undefined, since);
   const containerRef = React.useRef(null);
+  const [stations, setStations] = React.useState([]);
+
+  React.useEffect(() => {
+    (async () => {
+      const list = await getStations();
+      setStations(list);
+    })();
+  }, []);
+
+  // Default scope: admins see organization by default
+  React.useEffect(() => {
+    const role = normalizeRole(user?.role);
+    if (role === 'admin' || role === 'super_admin') {
+      setScope('org');
+    } else {
+      setScope('my');
+    }
+  }, [user?.role]);
 
   const exportPNG = async () => {
     if (!containerRef.current) return;
@@ -91,16 +111,18 @@ const Dashboard = () => {
 
   return (
     <div className="container dashboard-compact" ref={containerRef}>
-      <section className="welcome-section">
-        <h1 className="welcome-title">COCO Station Dashboard</h1>
-        <p className="welcome-subtitle">Overview of your COCO station issues and activity</p>
-        <div className="dashboard-actions" style={{flexWrap:'wrap'}}>
+      <PageHeader
+        title="COCO Station Dashboard"
+        subtitle="Overview of your COCO station issues and activity"
+        breadcrumbs={[{ label: 'Home', icon: <i className="fas fa-home" aria-hidden></i> }, { label: 'Dashboard', active: true }]}
+        actions={(
+          <div className="dashboard-actions" style={{flexWrap:'wrap', justifyContent:'flex-end'}}>
           <div style={{display:'flex', gap:'8px', alignItems:'center'}}>
             <label className="small" htmlFor="station-select">Station</label>
             <select id="station-select" value={station} onChange={(e)=>setStation(e.target.value)} className="btn-outline" style={{padding:'8px 10px', borderRadius:'8px'}}>
               <option value="">All Stations</option>
-              {STATIONS.map(s => (
-                <option key={s} value={s}>{getStationName(s)}</option>
+              {stations.map(s => (
+                <option key={s.id} value={s.id}>{s.name || s.id}</option>
               ))}
             </select>
           </div>
@@ -135,8 +157,9 @@ const Dashboard = () => {
             <i className="fas fa-file-pdf"></i>
             Export PDF
           </button>
-        </div>
-      </section>
+          </div>
+        )}
+      />
 
       <section className="dashboard-kpis">
         <StatCard label="Total Issues" value={loading ? '…' : stats.total}
@@ -147,10 +170,12 @@ const Dashboard = () => {
           trend={stats.trendInProgress} icon={<i className="fas fa-tools" />} />
         <StatCard label="Resolved" value={loading ? '…' : stats.resolved}
           trend={stats.trendResolved} icon={<i className="fas fa-check-circle" />} />
+        <StatCard label="Closed" value={loading ? '…' : stats.closed}
+          trend={0} icon={<i className="fas fa-lock" />} />
       </section>
 
       <section className="charts-grid">
-        <div className="card"><StatusDonut open={stats.open} inProgress={stats.inProgress} resolved={stats.resolved} /></div>
+  <div className="card"><StatusDonut open={stats.open} inProgress={stats.inProgress} resolved={stats.resolved} closed={stats.closed} /></div>
         <div className="card"><PriorityDonut low={stats.byPriority?.low} medium={stats.byPriority?.medium} high={stats.byPriority?.high} /></div>
       </section>
 

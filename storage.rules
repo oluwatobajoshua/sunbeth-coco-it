@@ -1,0 +1,21 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    function authed() {
+      return request.auth != null;
+    }
+
+    // Photos uploaded for issues live under issues/{issueId}/...
+    match /issues/{issueId}/{allPaths=**} {
+      allow read: if authed();
+      allow write: if authed()
+                   && request.resource.size < 10 * 1024 * 1024 // < 10MB
+                   && request.resource.contentType.matches('image/.*');
+    }
+
+    // Deny everything else by default
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

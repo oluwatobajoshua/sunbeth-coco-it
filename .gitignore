@@ -99,6 +99,12 @@ dist/
 firebase-debug.log
 firestore-debug.log
 
+# Firebase Service Account keys (NEVER commit secrets)
+# common naming patterns; adjust if you use a different scheme
+service-account*.json
+*-firebase-adminsdk-*.json
+secrets/**
+
 # Old HTML version files (keeping for reference)
 index.html.backup
 app.js.backup

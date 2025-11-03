@@ -281,16 +281,10 @@ vercel --prod
 - Rotate keys regularly
 
 ### Firebase Security Rules
-```javascript
-// Firestore Rules
-rules_version = '2';
-service cloud.firestore {
-  match /databases/{database}/documents {
-    match /issues/{issueId} {
-      allow read, write: if request.auth != null;
-    }
-  }
-}
+See the complete ruleset in the project root at `firestore.rules`. The rules enforce RBAC with a permissions matrix stored at `settings/permissions` and support a bootstrap Super Admin list at `settings/bootstrap.super_admin_emails` for initial access. Deploy with:
+
+```powershell
+npx firebase-tools deploy --only firestore:rules --project <projectId>
 ```
 
 ## 📊 Performance
@@ -419,6 +413,33 @@ Guarding and visibility are enforced via:
 
 - `src/utils/permissions.js` with `normalizeRole`, `fetchPermissionsMatrix`, and `hasPermission`
 - `src/pages/Admin.js` applies `view_admin`, `manage_stations`, `manage_issue_types`, `manage_users`, `manage_issues`, and `debug_tools`
+### If you see "Access denied" on /admin
+
+The Admin page is guarded by the permission matrix and the user's role. You need `view_admin` permission (typically `Admin` or `Super Admin`). There are three ways to grant yourself access:
+
+1) Bootstrap (local/dev only)
+
+Set an env var with your email before starting the app. The signed-in account that matches this email will be temporarily granted `Super Admin` (to configure real roles via the Admin UI), and you can remove this after setup.
+
+Windows PowerShell example:
+
+```powershell
+$env:REACT_APP_BOOTSTRAP_SUPERADMIN_EMAIL = "your.name@company.com"; npm start
+```
+
+2) Directory record (via Firestore Console)
+
+Create a `users` document with your email and role:
+
+- Collection: `users`
+- Fields: `{ email: "your.name@company.com", role: "Super Admin" }`
+
+3) Custom claims (server-side)
+
+Mint Firebase custom claims with `{ role: 'Admin' | 'Super Admin' }` for your Auth user. The app reads claims first, then the directory.
+
+Security note: Use the bootstrap env only during initial setup or local development; remove afterwards.
+
 
 Default roles and permissions (can be overridden by Firestore):
 
@@ -427,6 +448,18 @@ Default roles and permissions (can be overridden by Firestore):
 - super_admin: everything, including Debug tools
 
 Tip: During development, `src/hooks/useAuth.js` uses a mock user. Change the `role` to `Super Admin` to see all admin sections.
+
+### Debug Auth Chip
+
+To quickly diagnose role/permission issues during development, enable a small in-app chip that shows your email, provider, resolved role, and a key permission flag (e.g., `manage_stations`).
+
+Add to `.env`:
+
+```
+REACT_APP_DEBUG_AUTH=true
+```
+
+Restart the dev server. The chip appears on Admin pages; set to `false` (or remove) to hide it.
 
 ---
 
@@ -445,6 +478,44 @@ Debug tools for Super Admin (Admin → Debug):
 - Clear ALL Firestore issues (destructive)
 - Toggle Demo Mode
 - Clear local/session storage
+
+### Seeding via Admin SDK (no rules relax required)
+
+Use the provided Node script for secure, rule-bypassing seeding with a Firebase Service Account:
+
+1. Obtain a Service Account key JSON (GCP Console → IAM → Service Accounts → Keys)
+2. Set one of the following:
+    - WINDOWS PowerShell example:
+       - `$env:FIREBASE_SERVICE_ACCOUNT_JSON = Get-Content -Raw -Path path\to\key.json`
+       - `npm run seed:demo`  # Seeds ~50 issues (skips existing by id)
+    - Or set `$env:GOOGLE_APPLICATION_CREDENTIALS = "C:\\path\\to\\key.json"` then run `npm run seed:demo`
+
+Script: `scripts/seed-demo.js` (uses firebase-admin)
+
+### Live Seeding, Bootstrap, and Promotion (Admin SDK)
+
+Use these scripts with a Firebase service account for production-like environments:
+
+- `scripts/seed-live.js` — seeds Stations, Issue Types, App/Escalation Settings, and the Permissions Matrix. You can also write a bootstrap list so the rules recognize Super Admins immediately:
+
+```powershell
+node scripts/seed-live.js --project <projectId> --creds C:\path\to\service-account.json --bootstrap "your.admin@company.com,another@company.com"
+```
+
+- `scripts/promote-user.js` — sets Firebase custom claims and upserts `users/{uid}` and `users/{email}` docs so the rules can resolve the role deterministically:
+
+```powershell
+node scripts/promote-user.js --email your.admin@company.com --role "Super Admin" --creds C:\path\to\service-account.json
+```
+
+On Windows, you can also use PowerShell helpers in `scripts/dev-up.ps1`:
+
+```powershell
+Set-FirebaseEnv -Path C:\path\to\service-account.json -Project <projectId>
+Seed-Live -Bootstrap "your.admin@company.com"
+Promote-User -Email your.admin@company.com -Role "Super Admin"
+Deploy-Rules
+```
 
 ---
 

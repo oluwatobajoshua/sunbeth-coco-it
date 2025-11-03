@@ -1,6 +1,6 @@
 import React from 'react';
 
-const SuccessModal = ({ show, issueId, onClose }) => {
+const SuccessModal = ({ show, issueId, teamLabel, onClose }) => {
   if (!show) return null;
 
   const handleSubmitAnother = () => {
@@ -18,11 +18,13 @@ const SuccessModal = ({ show, issueId, onClose }) => {
         <div className="modal-body">
           <p>Your issue has been reported and assigned ID:</p>
           <div className="issue-id">{issueId}</div>
-          <p>Our engineering team has been notified and will respond within <strong>24 hours</strong>.</p>
+          <p>
+            The {teamLabel || 'relevant'} team has been notified and will begin review shortly.
+          </p>
           <div className="next-steps">
             <h4>What happens next?</h4>
             <ol>
-              <li>Engineering team reviews your issue</li>
+              <li>{(teamLabel || 'Relevant')} team reviews your issue</li>
               <li>You'll receive status updates via your preferred method</li>
               <li>Issue will be resolved and marked complete</li>
             </ol>

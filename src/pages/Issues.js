@@ -1,7 +1,9 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { useAuth } from '../hooks/useAuth';
 import { useRecentIssues } from '../hooks/useRecentIssues';
-import { exportToCsv, getStationName } from '../utils/helpers';
+import { exportToCsv } from '../utils/helpers';
+import { getStations } from '../services/stationService';
+import PageHeader from '../components/PageHeader';
 
 const Tabs = ({ value, onChange }) => {
   const tabs = [
@@ -30,6 +32,17 @@ const Issues = () => {
   const [query, setQuery] = useState('');
   const [sort, setSort] = useState('newest');
 
+  const [stationNameMap, setStationNameMap] = useState({});
+
+  useEffect(() => {
+    (async () => {
+      const list = await getStations();
+      const map = {};
+      list.forEach(s => { map[s.id] = s.name || s.id; });
+      setStationNameMap(map);
+    })();
+  }, []);
+
   const filtered = useMemo(() => {
     const byStatus = filter === 'all' ? issues : issues.filter(i => i.status === filter);
     const byQuery = query.trim()
@@ -38,7 +51,7 @@ const Issues = () => {
           return (
             (i.id || '').toLowerCase().includes(q) ||
             (i.description || '').toLowerCase().includes(q) ||
-            getStationName(i.stationId).toLowerCase().includes(q)
+            (stationNameMap[i.stationId] || i.stationId || '').toLowerCase().includes(q)
           );
         })
       : byStatus;
@@ -48,14 +61,16 @@ const Issues = () => {
       return sort === 'newest' ? bt - at : at - bt;
     });
     return sorted;
-  }, [issues, filter, query, sort]);
+  }, [issues, filter, query, sort, stationNameMap]);
 
   return (
     <div className="container">
-      <section className="welcome-section">
-        <h1 className="welcome-title">Your Issues</h1>
-        <p className="welcome-subtitle">Browse and filter your reported issues</p>
-        <div className="d-flex" style={{gap:'8px', flexWrap:'wrap', alignItems:'center'}}>
+      <PageHeader
+        title="Your Issues"
+        subtitle="Browse and filter your reported issues"
+        breadcrumbs={[{ label: 'Home', icon: <i className="fas fa-home" aria-hidden></i> }, { label: 'Issues', active: true }]}
+        actions={(
+          <div className="d-flex" style={{gap:'8px', flexWrap:'wrap', alignItems:'center'}}>
           <Tabs value={filter} onChange={setFilter} />
           <input
             type="search"
@@ -73,8 +88,9 @@ const Issues = () => {
           <button className="btn btn-outline" onClick={() => exportToCsv('issues.csv', filtered)}>
             <i className="fas fa-download"></i> Export CSV
           </button>
-        </div>
-      </section>
+          </div>
+        )}
+      />
 
       <section className="recent-issues" aria-live="polite">
         <div className="issues-list">

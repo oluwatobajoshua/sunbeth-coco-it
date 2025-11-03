@@ -4,19 +4,19 @@ import { Chart as ChartJS, ArcElement, Tooltip, Legend } from 'chart.js';
 
 ChartJS.register(ArcElement, Tooltip, Legend);
 
-const StatusDonut = ({ open = 0, inProgress = 0, resolved = 0, title = 'Status Distribution' }) => {
+const StatusDonut = ({ open = 0, inProgress = 0, resolved = 0, closed = 0, title = 'Status Distribution' }) => {
   const colors = getColors();
   const data = useMemo(() => ({
-    labels: ['Open', 'In Progress', 'Resolved'],
+    labels: ['Open', 'In Progress', 'Resolved', 'Closed'],
     datasets: [
       {
-        data: [open, inProgress, resolved],
-        backgroundColor: [colors.accent, colors.primaryLight, colors.primary],
+        data: [open, inProgress, resolved, closed],
+        backgroundColor: [colors.accent, colors.primaryLight, colors.primary, colors.closed],
         borderWidth: 0,
         hoverOffset: 6,
       },
     ],
-  }), [open, inProgress, resolved, colors.accent, colors.primary, colors.primaryLight]);
+  }), [open, inProgress, resolved, closed, colors.accent, colors.primary, colors.primaryLight, colors.closed]);
 
   const options = useMemo(() => ({
     responsive: true,
@@ -47,6 +47,7 @@ function getColors() {
     primary: styles.getPropertyValue('--primary').trim() || '#0c5343',
     primaryLight: styles.getPropertyValue('--primary-500').trim() || '#0a6b55',
     accent: styles.getPropertyValue('--accent').trim() || '#f64500',
+    closed: styles.getPropertyValue('--gray-400').trim() || '#adb5bd',
     text: styles.getPropertyValue('--gray-700').trim() || '#343a40',
   };
 }

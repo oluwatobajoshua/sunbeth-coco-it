@@ -4,12 +4,13 @@ import AdminStations from './admin/AdminStations';
 import AdminIssueTypes from './admin/AdminIssueTypes';
 import AdminUsers from './admin/AdminUsers';
 import AdminPermissions from './admin/AdminPermissions';
+import AdminRoles from './admin/AdminRoles';
 import AdminSettings from './admin/AdminSettings';
 import AdminIssues from './admin/AdminIssues';
 import AdminDebug from './admin/AdminDebug';
 import { useAuth } from '../hooks/useAuth';
 import { useIssueStats } from '../hooks/useIssueStats';
-import { STATIONS } from '../utils/helpers';
+import { getStations } from '../services/stationService';
 import { normalizeRole, fetchPermissionsMatrix, hasPermission } from '../utils/permissions';
 
 const KPI = ({ label, value, icon }) => (
@@ -24,6 +25,20 @@ const KPI = ({ label, value, icon }) => (
 
 const Overview = () => {
   const { stats } = useIssueStats(null, undefined, 30);
+  const [stationCount, setStationCount] = React.useState(null);
+
+  React.useEffect(() => {
+    let mounted = true;
+    (async () => {
+      try {
+        const list = await getStations();
+        if (mounted) setStationCount(list.length);
+      } catch {
+        if (mounted) setStationCount(null);
+      }
+    })();
+    return () => { mounted = false; };
+  }, []);
   return (
     <section>
       <div className="section-header"><h3 className="small">Overview</h3></div>
@@ -31,7 +46,7 @@ const Overview = () => {
         <KPI label="Total Issues" value={stats.total} icon={<i className="fas fa-clipboard-list" />} />
         <KPI label="Open" value={stats.open} icon={<i className="fas fa-exclamation-circle" />} />
         <KPI label="Resolved" value={stats.resolved} icon={<i className="fas fa-check-circle" />} />
-        <KPI label="Stations" value={STATIONS.length} icon={<i className="fas fa-gas-pump" />} />
+        <KPI label="Stations" value={stationCount} icon={<i className="fas fa-gas-pump" />} />
       </div>
     </section>
   );
@@ -57,6 +72,7 @@ const Admin = () => {
   if (hasPermission(matrix, roleKey, 'manage_stations')) allowed.push('stations');
   if (hasPermission(matrix, roleKey, 'manage_issue_types')) allowed.push('types');
   if (hasPermission(matrix, roleKey, 'manage_users')) allowed.push('users', 'permissions');
+  if (hasPermission(matrix, roleKey, 'manage_roles')) allowed.push('roles');
   if (hasPermission(matrix, roleKey, 'view_admin')) allowed.push('settings');
   if (hasPermission(matrix, roleKey, 'debug_tools')) allowed.push('debug');
 
@@ -67,7 +83,8 @@ const Admin = () => {
       case 'stations': return <AdminStations />;
       case 'types': return <AdminIssueTypes />;
       case 'users': return <AdminUsers />;
-      case 'permissions': return <AdminPermissions />;
+  case 'permissions': return <AdminPermissions />;
+  case 'roles': return <AdminRoles />;
       case 'settings': return <AdminSettings />;
       case 'debug': return <AdminDebug />;
       default: return <Overview />;
@@ -75,7 +92,7 @@ const Admin = () => {
   };
   const safeSection = allowed.includes(section) ? section : 'overview';
 
-  if (!matrix) {
+  if (!user || !matrix) {
     return <div className="container"><div className="small">Loading admin...</div></div>;
   }
 
@@ -87,7 +104,7 @@ const Admin = () => {
           <h3 className="small">Access denied</h3>
           <div className="small">You do not have permission to access the Admin Console.</div>
           <div style={{ marginTop: 8 }}>
-            <a className="btn btn-outline" href="/">Go to Dashboard</a>
+            <a className="btn btn-outline" href="/dashboard">Go to Dashboard</a>
           </div>
         </section>
       </div>

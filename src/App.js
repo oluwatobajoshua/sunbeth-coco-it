@@ -2,45 +2,31 @@ import React from 'react';
 import { Toaster } from 'react-hot-toast';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import Header from './components/Header';
+import ProtectedRoute from './components/ProtectedRoute';
+import AuthNavigator from './components/AuthNavigator';
 import EnvWarning from './components/EnvWarning';
 import { useAuth } from './hooks/useAuth';
 import Dashboard from './pages/Dashboard';
+import Landing from './pages/Landing';
 import ReportIssue from './pages/ReportIssue';
 import Issues from './pages/Issues';
 import Admin from './pages/Admin';
 import './styles.css';
 import { DemoDataProvider } from './demo/DemoDataContext';
+import { ensureSeededAll } from './services/optionsService';
 
 function App() {
-  const { isAuthenticated, login } = useAuth();
+  // Access auth to ensure providers initialize; values aren't needed here anymore
+  useAuth();
 
-  if (!isAuthenticated) {
-    return (
-      <DemoDataProvider>
-        <div className="App">
-          <Header />
-          <main className="main-container">
-            <EnvWarning />
-            <div className="container">
-              <section className="welcome-section">
-                <h1 className="welcome-title">COCO Station Issue Tracker</h1>
-                <p className="welcome-subtitle">
-                  Streamlined issue reporting and tracking for Sunbeth Energies COCO fuel stations
-                </p>
-                <button 
-                  className="btn btn-primary"
-                  onClick={login}
-                >
-                  Sign In with Microsoft
-                </button>
-              </section>
-            </div>
-          </main>
-          <Toaster position="top-right" />
-        </div>
-      </DemoDataProvider>
-    );
-  }
+  // Attempt to seed lookup data and options once at startup (no-op for non-admins)
+  React.useEffect(() => {
+    (async () => {
+      try { await ensureSeededAll(); } catch (_) { /* ignore */ }
+    })();
+  }, []);
+
+  // Always render the router. Auth-gated areas handle their own permissions and UI.
 
   return (
     <DemoDataProvider>
@@ -49,11 +35,13 @@ function App() {
           <Header />
           <main className="main-container">
             <EnvWarning />
+            <AuthNavigator />
             <Routes>
-              <Route path="/" element={<Dashboard />} />
-              <Route path="/report" element={<ReportIssue />} />
-              <Route path="/issues" element={<Issues />} />
-              <Route path="/admin" element={<Admin />} />
+              <Route path="/" element={<Landing />} />
+              <Route path="/dashboard" element={<ProtectedRoute element={<Dashboard />} />} />
+              <Route path="/report" element={<ProtectedRoute element={<ReportIssue />} />} />
+              <Route path="/issues" element={<ProtectedRoute element={<Issues />} />} />
+              <Route path="/admin" element={<ProtectedRoute element={<Admin />} />} />
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
           </main>

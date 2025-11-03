@@ -1,14 +1,32 @@
 import React from 'react';
 import { useAuth } from '../hooks/useAuth';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useTheme } from '../hooks/useTheme';
+import DebugAuthChip from './DebugAuthChip';
+import { getDoc } from 'firebase/firestore';
+import { getSettingsDocRef } from '../services/adminService';
 import { isDemoEnabled, setDemoEnabled } from '../utils/featureFlags';
 import toast from 'react-hot-toast';
 
 const Header = () => {
-  const { user, logout } = useAuth();
+  const { user, login, logout } = useAuth();
+  const navigate = useNavigate();
   const { theme, toggle } = useTheme();
   const [demo, setDemo] = React.useState(isDemoEnabled());
+  const [enableGoogle, setEnableGoogle] = React.useState(() => String(process.env.REACT_APP_ENABLE_GOOGLE_SIGNIN || 'false').toLowerCase() === 'true');
+
+  // Load toggle from DB settings so Admin panel controls pre-login buttons
+  React.useEffect(() => {
+    (async () => {
+      try {
+        const snap = await getDoc(getSettingsDocRef('app'));
+        if (snap.exists()) {
+          const val = !!snap.data()?.enableGoogleSignIn;
+          setEnableGoogle(val);
+        }
+      } catch (_) { /* ignore */ }
+    })();
+  }, []);
 
   const toggleDemo = React.useCallback(() => {
     const next = !demo;
@@ -31,10 +49,11 @@ const Header = () => {
           </div>
         </div>
 
-        {user && (
+        {user ? (
           <div className="user">
+            <DebugAuthChip />
             <nav className="d-none d-md-flex" aria-label="Primary">
-              <Link to="/" className="btn ghost" title="Dashboard">
+              <Link to="/dashboard" className="btn ghost" title="Dashboard">
                 <i className="fas fa-home"></i>
               </Link>
               <Link to="/report" className="btn ghost" title="New Issue">
@@ -60,9 +79,29 @@ const Header = () => {
               <i className="fas fa-magic"></i>
               <span className="d-none d-md-inline" style={{ marginLeft: 6 }}>{demo ? 'Demo: On' : 'Demo: Off'}</span>
             </button>
-            <button className="btn ghost" onClick={logout} title="Sign out">
+            <button className="btn ghost" onClick={async ()=>{ await logout(); navigate('/'); }} title="Sign out">
               <i className="fas fa-sign-out-alt"></i>
             </button>
+          </div>
+        ) : (
+          <div className="user d-flex" style={{ gap: 8 }}>
+            {enableGoogle ? (
+              <>
+                <button className="btn btn-primary" onClick={()=>login('google')} title="Sign in with Google">
+                  <i className="fab fa-google" style={{ marginRight: 6 }}></i>
+                  Google
+                </button>
+                <button className="btn btn-secondary" onClick={()=>login('msal')} title="Sign in with Microsoft">
+                  <i className="fab fa-microsoft" style={{ marginRight: 6 }}></i>
+                  Microsoft
+                </button>
+              </>
+            ) : (
+              <button className="btn btn-primary" onClick={()=>login('msal')} title="Sign in">
+                <i className="fas fa-sign-in-alt" style={{ marginRight: 6 }}></i>
+                Sign in
+              </button>
+            )}
           </div>
         )}
       </div>

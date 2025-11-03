@@ -15,6 +15,7 @@ export const defaultMatrix = {
     view_dashboard: true,
     report_issue: true,
     manage_issues: true,
+    manage_settings: false,
     view_admin: false,
     manage_stations: false,
     manage_issue_types: false,
@@ -25,6 +26,7 @@ export const defaultMatrix = {
     view_dashboard: true,
     report_issue: true,
     manage_issues: true,
+    manage_settings: false,
     view_admin: false,
     manage_stations: false,
     manage_issue_types: false,
@@ -35,6 +37,7 @@ export const defaultMatrix = {
     view_dashboard: true,
     report_issue: true,
     manage_issues: true,
+    manage_settings: true,
     view_admin: true,
     manage_stations: true,
     manage_issue_types: true,
@@ -45,11 +48,12 @@ export const defaultMatrix = {
     view_dashboard: true,
     report_issue: true,
     manage_issues: true,
+    manage_settings: true,
     view_admin: true,
     manage_stations: true,
     manage_issue_types: true,
     manage_users: true,
-    debug_tools: true,
+    debug_tools: false,
   }
 };
 
