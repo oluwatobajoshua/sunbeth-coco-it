@@ -64,7 +64,10 @@ dist
 
 # Gatsby files
 .cache/
-public
+# Only ignore root-level public (if present); keep frontend/public in source
+/public
+!frontend/public/
+!frontend/public/**
 
 # Storybook build outputs
 .out
