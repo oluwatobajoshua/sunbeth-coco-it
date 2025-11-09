@@ -1,0 +1,23 @@
+{
+  "name": "coco-backend",
+  "version": "1.0.0",
+  "description": "Backend API for COCO Station Issue Tracker - Sunbeth Energies",
+  "main": "index.js",
+  "type": "commonjs",
+  "scripts": {
+    "start": "node index.js",
+    "dev": "nodemon index.js",
+    "test": "node test-integration.js",
+    "test:integration": "node test-integration.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2",
+    "cors": "^2.8.5",
+    "firebase-admin": "^12.6.0",
+    "jose": "^5.2.4",
+    "dotenv": "^16.4.5"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.0"
+  }
+}

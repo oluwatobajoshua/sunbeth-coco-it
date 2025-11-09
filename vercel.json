@@ -1,20 +1,9 @@
 {
   "version": 2,
-  "builds": [
-    { "src": "api/health.js", "use": "@vercel/node" },
-    { "src": "api/auth/msal-custom-token.js", "use": "@vercel/node" },
-    { "src": "api/approvals/create.js", "use": "@vercel/node" },
-    { "src": "api/approvals/decision.js", "use": "@vercel/node" },
-    { "src": "api/permissions/recompute.js", "use": "@vercel/node" },
-    { "src": "package.json", "use": "@vercel/static-build", "config": { "distDir": "build" } }
-  ],
-  "routes": [
-    { "src": "/api/health", "dest": "/api/health.js" },
-    { "src": "/api/auth/msal-custom-token", "dest": "/api/auth/msal-custom-token.js" },
-    { "src": "/api/approvals/create", "dest": "/api/approvals/create.js" },
-    { "src": "/api/approvals/decision", "dest": "/api/approvals/decision.js" },
-    { "src": "/api/permissions/recompute", "dest": "/api/permissions/recompute.js" },
-    { "src": "/(.*)", "dest": "/$1" }
+  "buildCommand": "cd frontend && npm install && npm run build",
+  "outputDirectory": "frontend/build",
+  "installCommand": "npm install --prefix frontend",
+  "rewrites": [
+    { "source": "/(.*)", "destination": "/index.html" }
   ]
 }
-
