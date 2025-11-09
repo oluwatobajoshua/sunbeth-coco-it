@@ -32,7 +32,7 @@
   },
   "scripts": {
     "start": "react-scripts start",
-    "build": "DISABLE_ESLINT_PLUGIN=true react-scripts build",
+    "build": "react-scripts build",
     "test": "react-scripts test",
     "eject": "react-scripts eject",
     "dev:test": "concurrently -k -s first -n emu,app \"firebase emulators:start --only firestore,auth,storage --project demo-sunbeth\" \"react-scripts start\"",
