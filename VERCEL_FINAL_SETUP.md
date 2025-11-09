@@ -49,7 +49,7 @@
 ```
 
 ### 3. Git Repository
-- **Origin**: `https://github.com/oluwatobajoshua/sunbeth-energies-coco-it.git`
+ - **Origin**: `https://github.com/oluwatobajoshua/sunbeth-coco-it.git`
 - **Branch**: `main`
 - **Git Root**: Repository root (not in frontend/)
 

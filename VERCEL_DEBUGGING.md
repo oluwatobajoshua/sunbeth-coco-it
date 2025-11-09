@@ -13,7 +13,7 @@ API endpoints at `/api/*` are returning HTML (the React app) instead of executin
 ## What to Check in Vercel Dashboard
 
 ### 1. Go to Latest Deployment
-https://vercel.com/oluwatobajoshuas-projects/sunbeth-energies-coco-it/deployments
+https://vercel.com/oluwatobajoshuas-projects/sunbeth-coco-it/deployments
 
 Click on the most recent deployment
 
@@ -29,7 +29,7 @@ Look for:
 - ❓ If no, this confirms functions aren't being built
 
 ### 4. Check Project Settings
-Go to: https://vercel.com/oluwatobajoshuas-projects/sunbeth-energies-coco-it/settings
+Go to: https://vercel.com/oluwatobajoshuas-projects/sunbeth-coco-it/settings
 
 #### General Settings:
 - ❓ What is "Root Directory" set to? (Should be blank or ".")
@@ -128,7 +128,7 @@ Then configure `vercel.json` at root to:
 ## Test Command
 ```powershell
 # Should return JSON with status:"ok"
-Invoke-RestMethod "https://sunbeth-energies-coco-it.vercel.app/api/health"
+Invoke-RestMethod "https://sunbeth-coco-it.vercel.app/api/health"
 
 # Currently returns: HTML (React app index.html)
 ```

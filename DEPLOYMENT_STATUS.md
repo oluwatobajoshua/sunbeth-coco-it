@@ -12,14 +12,14 @@ All backend environment variables have been successfully added to your Vercel pr
 5. **MSAL_CLIENT_ID** = `d3f0a7e5-2fc7-416f-ac07-1bbc1e18b707`
 
 ### ✅ Frontend Configuration Updated
-- `REACT_APP_MSAL_REDIRECT_URI` = `https://sunbeth-energies-coco-it.vercel.app`
-- `REACT_APP_APP_URL` = `https://sunbeth-energies-coco-it.vercel.app`
+- `REACT_APP_MSAL_REDIRECT_URI` = `https://sunbeth-coco-it.vercel.app`
+- `REACT_APP_APP_URL` = `https://sunbeth-coco-it.vercel.app`
 - `REACT_APP_BACKEND_URL` = (empty - uses relative API paths)
 - `REACT_APP_BACKEND_TYPE` = `express`
 - `REACT_APP_USE_MSAL_BRIDGE` = `true`
 
 ### ✅ Project Linked to Vercel
-- Project name: `sunbeth-energies-coco-it`
+- Project name: `sunbeth-coco-it`
 - Team: `oluwatobajoshuas-projects`
 
 ---
