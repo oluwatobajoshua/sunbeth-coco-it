@@ -345,4 +345,5 @@ If you see “Missing or insufficient permissions” or the UI shows role: unkno
 5) Re-deploy rules if they changed
     - `npx firebase-tools deploy --only firestore:rules --project <projectId>`
 
-Note: Anonymous sign-in is disabled by default to avoid confusing role resolution. You can enable it for dev by setting `REACT_APP_ALLOW_ANON=true`.
+Note: Anonymous sign-in is disabled by default to avoid confusing role resolution. You can enable it for dev by setting `REACT_APP_ALLOW_ANON=true`.\ #   t r i g g e r \  
+ 
