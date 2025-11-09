@@ -1,4 +1,3 @@
-import React from 'react';
 import { useAuth } from '../hooks/useAuth';
 
 // AuthNavigator previously handled silent MSAL redirect completion and auto-login.
