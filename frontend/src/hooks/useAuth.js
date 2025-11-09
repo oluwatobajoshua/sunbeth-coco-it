@@ -5,6 +5,7 @@ import { auth } from '../services/firebase';
 import { signInWithCustomToken, signOut, signInAnonymously, onAuthStateChanged, GoogleAuthProvider, OAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult } from 'firebase/auth';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { db } from '../services/firebase';
+/* eslint-disable no-unused-vars */
 import { msalConfig } from '../config';
 import { toast } from 'react-hot-toast';
 import { apiClient } from '../config/apiClient';

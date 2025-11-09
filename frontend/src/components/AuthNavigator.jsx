@@ -1,3 +1,4 @@
+/* eslint-disable no-unused-vars */
 import { useAuth } from '../hooks/useAuth';
 
 // AuthNavigator previously handled silent MSAL redirect completion and auto-login.
