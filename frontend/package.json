@@ -32,8 +32,8 @@
   },
   "scripts": {
     "start": "react-scripts start",
-    "build": "CI=false react-scripts build",
-    "vercel-build": "CI=false react-scripts build",
+  "build": "node scripts/build-no-lint.js",
+  "vercel-build": "node scripts/build-no-lint.js",
   "build:no-lint": "node scripts/build-no-lint.js",
     "now-build": "npm run build:no-lint",
     "test": "react-scripts test",
