@@ -1,19 +1,20 @@
 {
   "version": 2,
-  "framework": null,
-  "buildCommand": "npm run build",
-  "outputDirectory": "build",
   "builds": [
-    {
-      "src": "api/**/*.js",
-      "use": "@vercel/node"
-    }
+    { "src": "api/health.js", "use": "@vercel/node" },
+    { "src": "api/auth/msal-custom-token.js", "use": "@vercel/node" },
+    { "src": "api/approvals/create.js", "use": "@vercel/node" },
+    { "src": "api/approvals/decision.js", "use": "@vercel/node" },
+    { "src": "api/permissions/recompute.js", "use": "@vercel/node" },
+    { "src": "package.json", "use": "@vercel/static-build", "config": { "distDir": "build" } }
   ],
   "routes": [
-    { "src": "/api/(.*)", "dest": "/api/$1" },
-    { "src": "/static/(.*)", "dest": "/build/static/$1" },
-    { "src": "/(.*\\.(js|css|png|jpg|jpeg|gif|svg|ico|json))", "dest": "/build/$1" },
-    { "src": "/(.*)", "dest": "/build/index.html" }
+    { "src": "/api/health", "dest": "/api/health.js" },
+    { "src": "/api/auth/msal-custom-token", "dest": "/api/auth/msal-custom-token.js" },
+    { "src": "/api/approvals/create", "dest": "/api/approvals/create.js" },
+    { "src": "/api/approvals/decision", "dest": "/api/approvals/decision.js" },
+    { "src": "/api/permissions/recompute", "dest": "/api/permissions/recompute.js" },
+    { "src": "/(.*)", "dest": "/$1" }
   ]
 }
 
