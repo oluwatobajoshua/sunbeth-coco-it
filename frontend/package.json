@@ -35,6 +35,7 @@
     "build": "CI=false react-scripts build",
     "vercel-build": "CI=false react-scripts build",
   "build:no-lint": "node scripts/build-no-lint.js",
+    "now-build": "npm run build:no-lint",
     "test": "react-scripts test",
     "eject": "react-scripts eject",
     "dev:test": "concurrently -k -s first -n emu,app \"firebase emulators:start --only firestore,auth,storage --project demo-sunbeth\" \"react-scripts start\"",
