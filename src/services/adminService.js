@@ -7,6 +7,7 @@ import {
 import { getDocs as getDocsCompat, startAfter, where, limit as qLimit } from 'firebase/firestore';
 import { ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { auditSettingsChange, auditIssueStatusChange, auditIssueClosed, auditApprovalRequested } from './auditService';
+import { apiClient } from '../config/apiClient';
 
 // Generic helpers
 const listCollection = async (path, orderByField) => wrapPermissionDenied({
@@ -188,13 +189,6 @@ export const closeIssueAdmin = async (id, { note, file }, actorEmail) => wrapPer
   }
 });
 
-const getFunctionsBase = () => {
-  const region = process.env.REACT_APP_FUNCTIONS_REGION || 'us-central1';
-  const project = process.env.REACT_APP_FIREBASE_PROJECT_ID;
-  if (!project) return null;
-  return `https://${region}-${project}.cloudfunctions.net`;
-};
-
 export const requestCloseApproval = async (id, { note, file }, actorEmail) => wrapPermissionDenied({
   operation: 'update',
   collection: 'issues',
@@ -207,15 +201,15 @@ export const requestCloseApproval = async (id, { note, file }, actorEmail) => wr
     const snap = await uploadBytes(sRef, file, { contentType: file.type || 'image/jpeg' });
     photoUrl = await getDownloadURL(snap.ref);
   }
-  const base = getFunctionsBase();
-  if (!base) throw new Error('Missing REACT_APP_FIREBASE_PROJECT_ID for Functions');
-  const res = await fetch(`${base}/createApprovalRequest`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ issueId: id, closureNote: note || null, closurePhotoUrl: photoUrl || null, requestedBy: actorEmail || null }),
+  
+  // Use the new API client for backend calls
+  const data = await apiClient.createApprovalRequest({
+    issueId: id,
+    closureNote: note || null,
+    closurePhotoUrl: photoUrl || null,
+    requestedBy: actorEmail || null,
   });
-  if (!res.ok) throw new Error('Failed to create approval request');
-  const data = await res.json();
+  
   try { await auditApprovalRequested(id, note || null, photoUrl || null); } catch (_) {}
   return data;
   }

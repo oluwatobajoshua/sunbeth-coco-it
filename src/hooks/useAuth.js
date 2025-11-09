@@ -7,6 +7,7 @@ import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { db } from '../services/firebase';
 import firebaseConfig, { msalConfig } from '../config';
 import { toast } from 'react-hot-toast';
+import { apiClient } from '../config/apiClient';
 
 // Real auth hook using MSAL and Firestore-backed user directory
 export const useAuth = () => {
@@ -59,16 +60,15 @@ export const useAuth = () => {
     // Only on first mount
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-  // Bridge MSAL -> Firebase (only when MSAL is preferred and an MSAL account exists)
+  // Bridge MSAL -> Firebase (optional). Disabled by default on free tier projects without Cloud Functions.
   useEffect(() => {
     (async () => {
       try {
         const prefer = (process.env.REACT_APP_AUTH_PROVIDER || 'google').toLowerCase();
-        if (prefer === 'msal' && account && !auth.currentUser) {
+        const bridgeEnabled = String(process.env.REACT_APP_USE_MSAL_BRIDGE || 'false').toLowerCase() === 'true';
+        // Only attempt bridge when explicitly enabled AND provider preference is msal.
+        if (bridgeEnabled && prefer === 'msal' && account && !auth.currentUser) {
           debug('MSAL->Firebase bridge start');
-          const localEndpoint = process.env.REACT_APP_MSAL_FIREBASE_BRIDGE_URL;
-          const cloudEndpoint = `https://us-central1-${firebaseConfig.projectId}.cloudfunctions.net/msalCustomToken`;
-          const endpointOrder = localEndpoint ? [localEndpoint, cloudEndpoint] : [cloudEndpoint];
           const response = await instance.acquireTokenSilent({
             account,
             scopes: ['openid', 'profile', 'email'],
@@ -76,18 +76,15 @@ export const useAuth = () => {
           });
           const idToken = response.idToken;
           if (idToken) {
-            for (const ep of endpointOrder) {
-              try {
-                debug('Calling token bridge:', ep);
-                const res = await fetch(ep, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ idToken }) });
-                if (res.ok) {
-                  const { customToken } = await res.json();
-                  if (customToken) { await signInWithCustomToken(auth, customToken); break; }
-                }
-              } catch (err) {
-                // eslint-disable-next-line no-console
-                console.warn('Token endpoint error:', ep, err?.message || err);
+            try {
+              debug('Calling token bridge via API client');
+              const { customToken } = await apiClient.getMsalCustomToken(idToken);
+              if (customToken) {
+                await signInWithCustomToken(auth, customToken);
               }
+            } catch (err) {
+              // eslint-disable-next-line no-console
+              console.warn('Token bridge error:', err?.message || err);
             }
           }
           debug('MSAL->Firebase bridge end');
@@ -223,8 +220,10 @@ export const useAuth = () => {
           }
           throw err;
         }
-      } else if (prefer === 'msal') {
-        // Sign in with Firebase Microsoft provider (works with Firebase auth) and request Graph scopes
+      } else if (prefer === 'msal' || prefer === 'microsoft') {
+        // Sign in with Firebase Microsoft provider (works with Firebase auth) and request Graph scopes.
+        // Using Firebase's built-in "microsoft.com" OAuth provider avoids needing a custom token bridge.
+        // Be sure to enable Microsoft provider in Firebase Console → Authentication → Sign-in method.
         const provider = new OAuthProvider('microsoft.com');
         const tenantId = process.env.REACT_APP_MSAL_TENANT_ID || process.env.REACT_APP_TENANT_ID;
         // Route to tenant-specific endpoint to avoid AADSTS50194 when the app is single-tenant
