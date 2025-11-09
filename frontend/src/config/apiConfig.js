@@ -15,7 +15,8 @@
 const BACKEND_TYPE = process.env.REACT_APP_BACKEND_TYPE || 'express';
 
 // Base URLs for different backend types
-const EXPRESS_BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:3001';
+// Use nullish coalescing so an explicit empty string ('') is respected for same-domain deployments
+const EXPRESS_BACKEND_URL = process.env.REACT_APP_BACKEND_URL ?? 'http://localhost:3001';
 const CLOUD_FUNCTIONS_REGION = process.env.REACT_APP_FUNCTIONS_REGION || 'us-central1';
 const FIREBASE_PROJECT_ID = process.env.REACT_APP_FIREBASE_PROJECT_ID;
 const CUSTOM_BACKEND_URL = process.env.REACT_APP_CUSTOM_BACKEND_URL;
