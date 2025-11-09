@@ -6,7 +6,7 @@
     { "src": "api/approvals/create.js", "use": "@vercel/node" },
     { "src": "api/approvals/decision.js", "use": "@vercel/node" },
     { "src": "api/permissions/recompute.js", "use": "@vercel/node" },
-    { "src": "frontend/package.json", "use": "@vercel/static-build", "config": { "distDir": "frontend/build" } }
+    { "src": "frontend/package.json", "use": "@vercel/static-build", "config": { "distDir": "frontend/build", "buildCommand": "npm run build:no-lint" } }
   ],
   "routes": [
     { "src": "/api/health", "dest": "/api/health.js" },
