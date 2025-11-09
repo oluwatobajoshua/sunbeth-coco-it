@@ -61,15 +61,6 @@
 
 ## 📋 Next Steps
 
-### Step 1: Verify Build Success
-Check: https://vercel.com/oluwatobajoshuas-projects/sel-coco-station-report/deployments
-
-Look for:
-- ✅ Build completed successfully
-- ✅ **Functions** tab shows 5 serverless functions
-- ✅ No ESLint errors in logs
-
-### Step 2: Add Environment Variables
 Go to: https://vercel.com/oluwatobajoshuas-projects/sel-coco-station-report/settings/environment-variables
 
 **Backend Variables** (for API functions):
@@ -86,7 +77,7 @@ MSAL_CLIENT_ID=d3f0a7e5-2fc7-416f-ac07-1bbc1e18b707
 REACT_APP_FIREBASE_API_KEY=AIzaSyDwX8eCGHWT7Fw3VRWVwHAZQfcwrqpgozk
 REACT_APP_FIREBASE_AUTH_DOMAIN=sunbeth-energies-coco-it-891d2.firebaseapp.com
 REACT_APP_FIREBASE_PROJECT_ID=sunbeth-energies-coco-it-891d2
-REACT_APP_FIREBASE_STORAGE_BUCKET=sunbeth-energies-coco-it-891d2.appspot.com
+(Last reviewed: 2025-11-09, redeploy trigger)
 REACT_APP_FIREBASE_MESSAGING_SENDER_ID=516808574981
 REACT_APP_FIREBASE_APP_ID=1:516808574981:web:f79d3df537800e13d6746c
 
