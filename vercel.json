@@ -1,5 +1,6 @@
 {
   "version": 2,
+  "outputDirectory": "frontend/build",
   "builds": [
     { "src": "api/health.js", "use": "@vercel/node" },
     { "src": "api/auth/msal-custom-token.js", "use": "@vercel/node" },
