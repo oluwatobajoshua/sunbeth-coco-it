@@ -1,28 +1,21 @@
 {
-  "functions": {
-    "api/health.js": {
-      "runtime": "nodejs20.x"
+  "version": 2,
+  "builds": [
+    {
+      "src": "package.json",
+      "use": "@vercel/static-build",
+      "config": {
+        "distDir": "build"
+      }
     },
-    "api/auth/msal-custom-token.js": {
-      "runtime": "nodejs20.x"
-    },
-    "api/approvals/create.js": {
-      "runtime": "nodejs20.x"
-    },
-    "api/approvals/decision.js": {
-      "runtime": "nodejs20.x"
-    },
-    "api/permissions/recompute.js": {
-      "runtime": "nodejs20.x"
+    {
+      "src": "api/**/*.js",
+      "use": "@vercel/node"
     }
-  },
-  "rewrites": [
-    { "source": "/api/health", "destination": "/api/health.js" },
-    { "source": "/api/auth/msal-custom-token", "destination": "/api/auth/msal-custom-token.js" },
-    { "source": "/api/approvals/create", "destination": "/api/approvals/create.js" },
-    { "source": "/api/approvals/decision", "destination": "/api/approvals/decision.js" },
-    { "source": "/api/permissions/recompute", "destination": "/api/permissions/recompute.js" },
-    { "source": "/(.*)", "destination": "/index.html" }
+  ],
+  "routes": [
+    { "src": "/api/(.*)", "dest": "/api/$1" },
+    { "src": "/(.*)", "dest": "/$1" }
   ]
 }
 
