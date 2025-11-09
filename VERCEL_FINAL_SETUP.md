@@ -90,6 +90,20 @@ REACT_APP_BACKEND_URL=
 REACT_APP_USE_MSAL_BRIDGE=true
 ```
 
+### Optional: One-command env sync (CLI)
+
+If you prefer automating environment variables via CLI, you can use the provided script and manifest:
+
+1) Copy and edit `scripts/vercel-env.example.json` with your real values.
+
+2) Run the sync script (requires Vercel CLI login):
+
+```powershell
+pwsh scripts/sync-vercel-env.ps1 -Project sel-coco-station-report
+```
+
+This will set both production and preview environment variables.
+
 ### Step 3: Quick Add Environment Variables Script
 ```powershell
 cd "C:\Users\OluwatobaOgunsakin\Downloads\SEL COCO Station Report"
