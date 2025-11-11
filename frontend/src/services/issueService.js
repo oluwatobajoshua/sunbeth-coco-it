@@ -201,12 +201,6 @@ export const sendNotifications = async (issueData) => {
     // fallback to defaults
   }
 
-  const { subject, html, text: summary } = buildIssueReportedEmail(issueData, {
-    companyName: (process.env.REACT_APP_COMPANY_NAME || 'Sunbeth Energies'),
-    brandLogoUrl: process.env.REACT_APP_BRAND_LOGO_URL || null,
-    appUrl: process.env.REACT_APP_APP_URL || ''
-  });
-
   // Helpers
   const norm = (arr) => Array.from(new Set((arr || []).map(e => String(e || '').trim().toLowerCase()).filter(Boolean)));
   const resolveRoleEmails = async (roleIds) => {
@@ -242,6 +236,17 @@ export const sendNotifications = async (issueData) => {
       cc = norm([...(cfg.ccEmails || []), ...roleCC]);
     }
   } catch (_) {}
+
+  // Build email content AFTER computing assignees/cc so template includes them
+  const { subject, html, text: summary } = buildIssueReportedEmail({
+    ...issueData,
+    assignedTo,
+    cc,
+  }, {
+    companyName: (process.env.REACT_APP_COMPANY_NAME || 'Sunbeth Energies'),
+    brandLogoUrl: process.env.REACT_APP_BRAND_LOGO_URL || null,
+    appUrl: process.env.REACT_APP_APP_URL || ''
+  });
 
   // Final recipients: settings notification emails + assignees + cc (dedup)
   const recipients = Array.from(new Set([...(notificationEmails || []), ...assignedTo, ...cc].map(e => String(e || '').trim().toLowerCase()).filter(Boolean)));
